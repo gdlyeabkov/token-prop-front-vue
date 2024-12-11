@@ -3,17 +3,22 @@ import { ref } from 'vue'
 const sortMenu = ref(false)
 const filterMenu = ref(false)
 const sortOptions = ref([
-  { label: "Name: A-Z", value: "name_asc" },
-  { label: "Name: Z-A", value: "name_desc" },
-  { label: "Date: Newest", value: "date_desc" },
-  { label: "Date: Oldest", value: "date_asc" },
+  { label: 'Цена объекта', value: 'obj-price' },
+  { label: 'Цена токена', value: 'token-price' },
+  { label: 'Доходность', value: 'yield' },
 ])
 const filterOptions = ref([
-  { label: "Name: A-Z", value: "name_asc" },
-  { label: "Name: Z-A", value: "name_desc" },
-  { label: "Date: Newest", value: "date_desc" },
-  { label: "Date: Oldest", value: "date_asc" },
+  { label: "По гео", value: "geo" },
+  { label: "Провайдер", value: "provider" },
+  { label: "Тип сделки", value: "deal" },
+  { label: "Доступны/не доступны токены", value: "tokens" },
+  { label: "Сеть блокчейна", value: "blockchain" },
 ])
+
+const selectSort = (item) => {
+  sortMenu.value = false
+  filterMenu.value = false
+}
 </script>
 <template>
   <div class="pa-8">
@@ -24,7 +29,8 @@ const filterOptions = ref([
           :location="'start'"
           v-model="sortMenu"
           :close-on-content-click="false"
-          offset-y>
+          offset-y
+          :offset="[10, 0]">
           <template #activator="{ props }">
             <v-btn v-bind="props" color="primary" dark icon>
               <v-icon>mdi-sort</v-icon>
@@ -45,7 +51,8 @@ const filterOptions = ref([
           :location="'start'"
           v-model="filterMenu"
           :close-on-content-click="false"
-          offset-y>
+          offset-y
+          :offset="[10, 0]">
           <template #activator="{ props }">
             <v-btn v-bind="props" color="secondary" dark icon>
               <v-icon>mdi-filter</v-icon>
