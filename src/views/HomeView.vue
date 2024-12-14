@@ -15,9 +15,10 @@ const filterOptions = ref([
   { label: "Сеть блокчейна", value: "blockchain" },
 ])
 
-const selectSort = (item) => {
+const selectSort = () => {
   sortMenu.value = false
   filterMenu.value = false
+  // TODO: use item.id
 }
 </script>
 <template>
