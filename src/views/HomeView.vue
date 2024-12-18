@@ -64,17 +64,17 @@ onMounted(async () => {
             like: false
           }
           // create entry if db not contain
-          if (!iDbStore.get(obj.id)) {
-            iDbStore.add(data)
-            obj.isFavorite = false
-          } else {
-            const getRequest = iDbStore.get(obj.id)
-            getRequest.onsuccess = function () { 
-              const existingData = getRequest.result
-              obj.isFavorite = existingData.like
+          const getRequest = iDbStore.get(obj.id)
+          getRequest.onsuccess = function () { 
+            const existingData = getRequest.result
+            if (!existingData) {
+              iDbStore.add(data)
+              obj.isFavorite = false
+            } else {
+              obj.isFavorite = existingData?.like ?? false
             }
-            getRequest.onerror = () => console.error('Error retrieving entry')
           }
+          getRequest.onerror = () => console.error('Error retrieving entry')
         }
 
         transaction.oncomplete = () => console.log('Data written successfully')
@@ -97,9 +97,12 @@ const toggleLike = (obj) => {
     const getRequest = iDbStore.get(obj.id)
     getRequest.onsuccess = function () { 
       const existingData = getRequest.result
-      existingData.like = obj.isFavorite ?? false
+      existingData.like = obj.isFavorite
       // Update the entry in the object store
-      const updateRequest = iDbStore.put(existingData)
+      const updateRequest = iDbStore.put({
+        id: obj.id,
+        like: obj.isFavorite
+      })
       updateRequest.onsuccess = () => console.log('Entry updated successfully')
       updateRequest.onerror = () => console.error('Error updating entry')
     }
