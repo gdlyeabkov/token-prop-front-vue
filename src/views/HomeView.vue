@@ -97,7 +97,7 @@ const toggleLike = (obj) => {
     const getRequest = iDbStore.get(obj.id)
     getRequest.onsuccess = function () { 
       const existingData = getRequest.result
-      existingData.like = obj.isFavorite
+      existingData.like = obj.isFavorite ?? false
       // Update the entry in the object store
       const updateRequest = iDbStore.put(existingData)
       updateRequest.onsuccess = () => console.log('Entry updated successfully')
