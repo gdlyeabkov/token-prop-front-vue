@@ -74,11 +74,19 @@ onMounted(async () => {
               obj.isFavorite = existingData?.like ?? false
             }
           }
-          getRequest.onerror = () => console.error('Error retrieving entry')
+          getRequest.onerror = () => {
+            isShowSnackbar.value = true
+            snackbarContent.value = 'Произошла ошибка'
+            console.error('Error retrieving entry')
+          }
         }
 
         transaction.oncomplete = () => console.log('Data written successfully')
-        transaction.onerror = () => console.error('Error writing data')
+        transaction.onerror = () => {
+          isShowSnackbar.value = true
+          snackbarContent.value = 'Произошла ошибка'
+          console.error('Error writing data')
+        }
       }
     }
   } catch (e) {
@@ -104,9 +112,17 @@ const toggleLike = (obj) => {
         like: obj.isFavorite
       })
       updateRequest.onsuccess = () => console.log('Entry updated successfully')
-      updateRequest.onerror = () => console.error('Error updating entry')
+      updateRequest.onerror = () => {
+        isShowSnackbar.value = true
+        snackbarContent.value = 'Произошла ошибка'
+        console.error('Error updating entry')
+      }
     }
-    getRequest.onerror = () => console.error('Error retrieving entry')
+    getRequest.onerror = () => {
+      isShowSnackbar.value = true
+      snackbarContent.value = 'Произошла ошибка'
+      console.error('Error retrieving entry')
+    }
   }
 }
 
