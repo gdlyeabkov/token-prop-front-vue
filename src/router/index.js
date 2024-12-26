@@ -1,11 +1,17 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import DashboardView from '../views/DashboardView.vue'
+import AssetDetailView from '../views/AssetDetailView.vue'
 
 const routes = [
   {
     path: '/',
-    name: 'home',
-    component: HomeView
+    name: 'dashboard',
+    component: DashboardView
+  },
+  {
+    path: '/asset/:id',
+    name: 'asset-detail',
+    component: AssetDetailView
   },
 ]
 

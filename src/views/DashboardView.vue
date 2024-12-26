@@ -1,7 +1,8 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useStore } from 'vuex'
-import { useDisplay } from "vuetify"
+import { useDisplay } from 'vuetify'
+import { useRouter } from 'vue-router'
 
 const store = useStore()
 const { xs: isMobile } = useDisplay()
@@ -128,6 +129,12 @@ const toggleLike = (obj) => {
 
 const isTableView = false
 const isLocalCacheLikes = true
+
+const router = useRouter()
+
+const onCardClick = (id) => {
+  router.push({ name: 'asset-detail', params: { id } })
+}
 </script>
 <template>
   <div v-if="store.state.fetched" :class="{ 'pa-8': store.state.objs?.length ?? false }">
@@ -193,11 +200,12 @@ const isLocalCacheLikes = true
           :disabled="obj.tokens_available <= 0"
           :elevation="0"
           :rounded="'lg'"
-          class="mx-auto border d-flex flex-column"
+          class="mx-auto border d-flex flex-column clickable"
           :min-width="isMobile ? 323.5 - 16 * 2 : 323.5"
           :max-width="isMobile ? null : 323.5"
           :min-height="403.31"
-          :height="'100%'">
+          :height="'100%'"
+          @click="onCardClick(obj.id)">
           <!-- :height="'100%'" for stretch cards by vertically for other cards height in row -->
           <!-- 85% of height card for img style="min-height: 85% !important; height: 85%" -->
           <!-- https://cdn.vuetifyjs.com/images/cards/docks.jpg -->
