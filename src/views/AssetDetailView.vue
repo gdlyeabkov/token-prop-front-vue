@@ -133,9 +133,9 @@ const closeGallery = () => {
   <div v-if="store.state.fetched">
     <div v-if="store.state.obj" :elevation="0">
       <v-col :cols="12">
-        <div style="position: relative" class="mb-8">
+        <div class="position-relative mb-8">
           <v-row>
-            <v-col :cols="4" class="pa-0">
+            <v-col :cols="isMobile ? 12 : 4" class="pa-0">
               <v-img
                 :src="store.state.obj.photos.length ? store.state.obj.photos[0].url : require('@/assets/token_prop_placeholder.jpg')"
                 :height="400"
@@ -153,7 +153,7 @@ const closeGallery = () => {
                 </template>
               </v-img>
             </v-col>
-            <v-col :cols="4" class="pa-0">
+            <v-col v-if="!isMobile" :cols="4" class="pa-0">
               <v-img
                 :src="store.state.obj.photos.length ? store.state.obj.photos[1].url : require('@/assets/token_prop_placeholder.jpg')"
                 :height="400"
@@ -171,7 +171,7 @@ const closeGallery = () => {
                 </template>
               </v-img>
             </v-col>
-            <v-col :cols="4" class="pa-0">
+            <v-col v-if="!isMobile" :cols="4" class="pa-0">
               <v-img
                 :src="store.state.obj.photos.length ? store.state.obj.photos[2].url : require('@/assets/token_prop_placeholder.jpg')"
                 :height="400"
@@ -192,16 +192,16 @@ const closeGallery = () => {
           </v-row>
           <v-btn
             icon
-            class="text-none mt-auto ma-0"
-            style="position: absolute; left: 15px; top: 35px"
+            class="text-none mt-auto ma-0 back-btn"
+            :position="'absolute'"
             :elevation="0"
             @click="$router.go(-1)">
             <v-icon>mdi-chevron-left</v-icon>
           </v-btn>
           <v-btn
             :min-height="40"
-            class="text-none mt-auto ma-0"
-            style="position: absolute; right: 15px; top: 35px"
+            class="text-none mt-auto ma-0 view-all-photos"
+            :position="'absolute'"
             :color="'#fff'"
             :elevation="0"
             :text="'View all photos'"
@@ -211,7 +211,7 @@ const closeGallery = () => {
             </template>
           </v-btn>
         </div>
-        <div style="position: relative">
+        <div class="position-relative">
           <div>
             <v-card-title>
               <v-row align="center" no-gutters>
@@ -225,29 +225,23 @@ const closeGallery = () => {
               </v-row>
             </v-card-title>
             <v-card-subtitle class="text-wrap">
-              <!-- not use desc -->
-              <!-- <p class="mb-3">
-                {{ store.state.obj.description }}
-              </p> -->
               <p class="mb-3 text-h5">{{ store.state.obj.address }}</p>
               <p class="mb-3 text-h5">Price per token ${{ store.state.obj.token_price }}</p>
             </v-card-subtitle>
           </div>
-          <div :style="`${isMobile ? '' : 'position: absolute; '} height: 100%; top: -100px; right: 50px`">
-            <div style="position: sticky; top: 50px; right: 0px; margin-left: auto; z-index: 999">
+          <div class="price-block h-100" :style="`${isMobile ? '' : 'position: absolute; '}`">
+            <div class="ms-auto position-sticky price-block-content">
               <v-card
                 class="border"
                 :width="isMobile ? '100%' : 460"
                 :color="'#fff'"
                 :elevation="0"
                 :rounded="'lg'">
-                <div style="background-color: rgb(242 240 255)" class="pa-4 mb-6">
+                <div class="pa-4 mb-6 price-block-content-header">
                   <v-row no-gutters align="end">
                     <p class="text-h5">Starting Price</p>
                     <v-spacer />
                     <span class="text-h6">$</span>
-                    <!-- <p class="text-h4">50.63</p> -->
-                    <!-- TODO:bind -->
                     <p class="text-h4">{{ store.state.obj.property_price }}</p>
                   </v-row>
                 </div>
@@ -306,16 +300,14 @@ const closeGallery = () => {
             </div>
           </div>
           <v-col :cols="isMobile ? null : 7" class="pa-0">
-            <div style="position: relative" class="pa-4">
+            <div class="position-relative pa-4">
               <v-tabs v-model="tab" class="mb-6">
                 <v-tab :value="'DETAILS'" class="text-none">Details</v-tab>
                 <v-tab :value="'FINANCIALS'" class="text-none">Financials</v-tab>
                 <v-tab :value="'DOCS'" class="text-none">Documents</v-tab>
               </v-tabs>
               <div v-if="tab === 'DETAILS'">
-                <p class="text-subtitle-2 mb-4">
-                  {{ store.state.obj.description }}
-                </p>
+                <p class="text-subtitle-2 text-break mb-4">{{ store.state.obj.description }}</p>
               </div>
               <div v-if="tab === 'FINANCIALS'">
                 <v-card rounded="lg" :elevation="0" color="#08175D" class="mb-6">
@@ -445,44 +437,38 @@ const closeGallery = () => {
       :height="'100%'"
       :draggable="false" />
     <v-btn
-      style="left: 15px; top: 50%"
       :color="'#fff'"
       :position="'absolute'"
       :elevation="store.state.obj.tokens_available <= 0 ? 0 : undefined"
       :disabled="detailPhotoIndex === 0"
-      class="like-btn"
+      class="slide-left-btn"
       icon
       @click="prevPhoto">
       <v-icon>mdi-chevron-left</v-icon>
     </v-btn>
     <v-btn
-      style="right: 15px; top: 50%"
       :color="'#fff'"
       :position="'absolute'"
       :elevation="store.state.obj.tokens_available <= 0 ? 0 : undefined"
       :disabled="detailPhotoIndex >= store.state.obj.photos.length - 1"
-      class="like-btn"
+      class="slide-right-btn"
       icon
       @click="nextPhoto">
       <v-icon>mdi-chevron-right</v-icon>
     </v-btn>
     <v-btn
-      style="right: 15px; top: 15px"
       :color="'#fff'"
       :position="'absolute'"
-      :elevation="store.state.obj.tokens_available <= 0 ? 0 : undefined"
-      :disabled="detailPhotoIndex >= store.state.obj.photos.length - 1"
-      class="like-btn"
+      class="close-btn"
       icon
       @click="closeGallery">
       <v-icon>mdi-close</v-icon>
     </v-btn>
-    <v-row style="width: 100%; position: absolute; left: 0; bottom: 35px" no-gutters class="mt-auto text-none" :justify="'center'">
+    <v-row no-gutters class="mt-auto text-none w-100 position-absolute slide-indicator" :justify="'center'">
       <v-btn
         :color="'#fff'"
         :elevation="store.state.obj.tokens_available <= 0 ? 0 : undefined"
-        class="like-btn"
-        style="pointer-events: none">
+        class="disable-events">
         {{ detailPhotoIndex + 1 }} / {{ store.state.obj.photos.length }}
       </v-btn>
     </v-row>
@@ -496,5 +482,56 @@ const closeGallery = () => {
 
 .custom-dialog {
   background-color: #020724; /* Change to desired color */
+}
+</style>
+<style scoped>
+.back-btn {
+  left: 15px;
+  top: 35px;
+}
+
+.view-all-photos {
+  right: 15px;
+  top: 35px;
+}
+
+.price-block {
+  top: -100px;
+  right: 50px;
+}
+
+.price-block-content {
+  top: 50px;
+  right: 0px;
+  z-index: 999;
+
+}
+
+.price-block-content-header {
+  background-color: rgb(242 240 255);
+}
+
+.close-btn {
+  right: 15px;
+  top: 15px;
+}
+
+.slide-left-btn {
+  left: 15px;
+  top: 50%;
+}
+
+.slide-right-btn {
+  right: 15px;
+  top: 50%;
+}
+
+.slide-indicator {
+  left: 0;
+  bottom: 35px;
+}
+
+.disable-events {
+  pointer-events: none;
 }
 </style>

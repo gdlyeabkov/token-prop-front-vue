@@ -250,7 +250,7 @@ const onCardClick = (id) => {
             :elevation="obj.tokens_available <= 0 ? 0 : undefined"
             class="like-btn"
             icon
-            @click="toggleLike(obj)">
+            @click.stop="toggleLike(obj)">
             <v-fade-transition leave-absolute>
               <v-icon v-if="obj.isFavorite ?? false" :color="'#f00'">mdi-heart</v-icon>
               <v-icon v-else :color="'#bbb'">mdi-heart-outline</v-icon>
