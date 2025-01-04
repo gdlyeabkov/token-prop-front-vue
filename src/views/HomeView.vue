@@ -86,7 +86,7 @@ onMounted(async () => {
         // Write data
         const transaction = db.value.transaction('obj2like', 'readwrite')
         const iDbStore = transaction.objectStore('obj2like')
-        for (let obj of store.state.objs) {
+        for (let obj of store.state.objs ?? []) {
           const data = {
             id: obj.id,
             like: false
@@ -180,6 +180,7 @@ const resetFilters = () => {
   countries.value = []
   // update data after reset filters
   updateTableItems()
+  syncQuery()
 }
 
 const updateTableItems = () => {
@@ -297,9 +298,9 @@ const propTypeChanged = () => {
 }
 </script>
 <template>
-  <div v-if="store.state.fetched" :class="{ 'pa-8': (store.state.objs?.length ?? false) || (isTableView && store.state.objs) }">
+  <div v-if="store.state.fetched" :class="{ 'pa-8': (store.state.objs?.length ?? false) || isTableView }">
     <!-- <div v-if="store.state.objs?.length ?? false"> -->
-    <div v-if="(store.state.objs?.length ?? false) || (isTableView && store.state.objs)">
+    <div v-if="(store.state.objs?.length ?? false) || isTableView">
       <p class="text-h5 mb-4">Могут подойти</p>
       <v-row no-gutters>
         <v-spacer />
@@ -371,7 +372,7 @@ const propTypeChanged = () => {
         </v-row>
       </div>
     </v-expand-transition> -->
-    <v-row v-if="store.state.objs" :align="'stretch'">
+    <v-row :align="'stretch'">
       <!-- cols="4" for filters in aside -->
       <v-col v-if="isTableView" cols="12">
         <p class="text-subtitle-2 mb-4">Portfolio budget</p>
@@ -386,8 +387,8 @@ const propTypeChanged = () => {
           :show-ticks="'always'"
           v-model="numOfPropsForPortfolio"
           class="mb-4"
-          @update:modelValue="numOfPropsChanged">
-          <template #tick-label="{index}">
+          @update:modelValue="(val) => numOfPropsChanged = val">
+          <template #tick-label="{ index }">
             <p v-if="index === 0">1</p>
             <p v-else-if="index === 19">20</p>
           </template>
@@ -477,68 +478,6 @@ const propTypeChanged = () => {
       <v-col v-if="isTableView" cols="12">
         <!-- TODO: fix header -->
         <!-- example: fixed-header height="68vh" -->
-        <!-- <v-table>
-          <thead>
-            <tr>
-              <th class="text-left">
-                Property name
-              </th>
-              <th class="text-left">
-                Country
-              </th>
-              <th class="text-left">
-                Deal Type
-              </th>
-              <th class="text-left">
-                Provider
-              </th>
-              <th class="text-left">
-                Property price
-              </th>
-              <th class="text-left">
-                Projected Rental Yield
-              </th>
-              <th class="text-left">
-                Projected Appreciation
-              </th>
-              <th class="text-left">
-                Projected Total Yield 
-              </th>
-              <th class="text-left">
-                Suggested to buy
-              </th>
-              <th class="text-left">
-                Add to favorites
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="obj in store.state.objs"
-              :key="obj.id"
-            >
-              <td>{{ obj.name }}</td>
-              <td>{{ obj.country }}</td>
-              <td>{{ obj.deal_type }}</td>
-              <td>{{ obj.provider.name }}</td>
-              <td>${{ obj.property_price }}</td>
-              <td>${{ obj.projected_rental_yield }}</td>
-              <td>${{ obj.projected_appreciation }}</td>
-              <td>
-                ?
-              </td>
-              <td>
-                ?
-              </td>
-              <td>
-                <v-fade-transition leave-absolute @click="toggleLike(obj)">
-                  <v-icon v-if="obj.isFavorite ?? false" :color="'#f00'">mdi-heart</v-icon>
-                  <v-icon v-else :color="'#bbb'">mdi-heart-outline</v-icon>
-                </v-fade-transition>
-              </td>
-            </tr>
-          </tbody>
-        </v-table> -->
         <v-data-table
           fixed-header
           :item-key="'id'"
@@ -555,12 +494,12 @@ const propTypeChanged = () => {
             { title: 'Suggested to buy', value: 'SUGGESTED_TO_BUY' },
             { title: 'Add to favorites', value: 'ADD_TO_FAVORITES' },
           ]"
-          :items="store.state.objs">
+          :items="store.state.objs ?? []">
           <template #[`item.name`]="{ item }">
             {{ item.name }}
           </template>
           <template #[`item.country`]="{ item }">
-            {{ item.country }}
+            {{ item.country.code }}
           </template>
           <template #[`item.deal_type`]="{ item }">
             {{ item.deal_type }}
@@ -592,7 +531,7 @@ const propTypeChanged = () => {
         </v-data-table>
       </v-col>
       <template v-else>
-        <v-col v-for="obj in store.state.objs" :key="obj.id" :cols="isMobile ? 12 : 'auto'">
+        <v-col v-for="obj in store.state.objs ?? []" :key="obj.id" :cols="isMobile ? 12 : 'auto'">
           <v-card
             :disabled="obj.tokens_available <= 0"
             :elevation="0"
