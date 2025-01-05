@@ -8,11 +8,19 @@ export default createStore({
     obj: null,
   },
   actions: {
-    async getObjs({ state }) {
+    async getObjs({ state }, payload = {}) {
       state.fetched = false
+      state.objs = null
       try {
-        const response = await axios.get('https://fl.drros.ru/api/assets/')
+        const response = await axios.get('https://fl.drros.ru/api/assets/', {
+          params: {
+            ...payload
+          }
+        })
         state.objs = response.data
+      } catch (e) {
+        state.objs = null
+        state.fetched = true
       } finally {
         state.fetched = true
       }
