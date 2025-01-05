@@ -9,121 +9,136 @@ const { xs: isMobile } = useDisplay()
 const router = useRouter()
 const route = useRoute()
 
-/*
- * force not use sort menu
- * const isShowSortMenu = ref(false)
- * const sortMenuItem = ref(null)
- * const sortOptions = ref([
- * { label: 'Цена объекта', value: 'obj-price' },
- * { label: 'Цена токена', value: 'token-price' },
- * { label: 'Доходность', value: 'yield' },
- * ])
- * const isShowFilterMenu = ref(false)
- * const filterMenuItem = ref(null)
- * const filterOptions = ref([
- * { label: 'По гео', value: 'geo' },
- * { label: 'Провайдер', value: 'provider' },
- * { label: 'Тип сделки', value: 'deal' },
- * { label: 'Доступны/не доступны токены', value: 'tokens' },
- * { label: 'Сеть блокчейна', value: 'blockchain' },
- * ])
- */
-
+const isTableView = ref(false)
+const dealType = ref('Balanced (higher projected total yield)')
+const numOfPropsForPortfolio = ref(10)
+const portfolioBudget = ref()
+const propTypeInPortfolio = ref('Mixed')
+const geoDiversification = ref('ALL')
+const countries = ref([])
 const db = ref(null)
-
 const isShowSnackbar = ref(false)
 const snackbarContent = ref('')
-
-/*
- * const selectSort = (item) => {
- * isShowSortMenu.value = false
- * sortMenuItem.value = item.value
- * }
-
- * const selectFilter = (item) => {
- * isShowFilterMenu.value = false
- * filterMenuItem.value = item.value
- * }
- */
 
 const onObjImgError = (obj) => {
   obj.photos[0].url = ''
 }
 
-onMounted(async () => {
-  const budget = route.query.budget
-  if (budget) portfolioBudget.value = budget
-  const propType = route.query.prop_type
-  if (propType) propTypeInPortfolio.value = propType
-  const numOfProps = route.query.num_of_props
-  if (numOfProps) numOfPropsForPortfolio.value = numOfProps
-  const geo = route.query.geo
-  if (geo) {
-    geoDiversification.value = 'COUNTRY'
-    countries.value = geo.split(',')
-  }
-  const deal = route.query.deal_type
-  if (deal) dealType.value = deal
-  try {
-    await store.dispatch('getObjs')
-    if (isLocalCacheLikes) {
-      const request = indexedDB.open('token_prop', 1)
-      request.onupgradeneeded = function (event) {
-        db.value = event.target.result
-        // Create an object store if it doesn't exist
-        if (!db.value.objectStoreNames.contains('obj2like')) {
-          db.value.createObjectStore(
-            'obj2like',
-            {
-              keyPath: 'id'
-            }
-          )
-        }
-      }
-      request.onsuccess = function (event) {
-        db.value = event.target.result
-        
-        // Write data
-        const transaction = db.value.transaction('obj2like', 'readwrite')
-        const iDbStore = transaction.objectStore('obj2like')
-        for (let obj of store.state.objs ?? []) {
-          const data = {
-            id: obj.id,
-            like: false
-          }
-          // create entry if db not contain
-          const getRequest = iDbStore.get(obj.id)
-          getRequest.onsuccess = function () { 
-            const existingData = getRequest.result
-            if (!existingData) {
-              iDbStore.add(data)
-              obj.isFavorite = false
-            } else {
-              obj.isFavorite = existingData?.like ?? false
-            }
-          }
-          getRequest.onerror = () => {
-            isShowSnackbar.value = true
-            snackbarContent.value = 'Произошла ошибка'
-            console.error('Error retrieving entry')
-          }
-        }
+const toggleViewMode = () => {
+  isTableView.value = !isTableView.value
+  // update data after toggle view mode
+  // reset filters for return to grid view mode because or else invalid behaviour or transfer filters only for isTableView
+  updateTableItems()
+}
 
-        transaction.oncomplete = () => console.log('Data written successfully')
-        transaction.onerror = () => {
-          isShowSnackbar.value = true
-          snackbarContent.value = 'Произошла ошибка'
-          console.error('Error writing data')
-        }
+const resetFilters = () => {
+  /*
+   * force not use sort and filter menus
+   * isShowSortMenu.value = false
+   * sortMenuItem.value = null
+   * isShowFilterMenu.value = false
+   * filterMenuItem.value = null
+   */
+  dealType.value = 'Balanced (higher projected total yield)'
+  numOfPropsForPortfolio.value = 10
+  portfolioBudget.value = undefined
+  propTypeInPortfolio.value = 'Mixed'
+  geoDiversification.value = 'ALL'
+  countries.value = []
+  // update data after reset filters
+  updateTableItems()
+  syncQuery()
+}
+
+const updateTableItems = async () => {
+  const filters = {
+    'name': ['icontains'],
+    'provider__name': ['icontains'],
+    'deal_type': ['exact'],
+    // 'deal_type': dealType.value,
+    // 'property_type': ['exact'],
+    'address': ['icontains'],
+    'province': ['exact'],
+    'country': countries.value.length && geoDiversification.value === 'COUNTRY' ? countries.value[0] : [],
+    'projected_rental_yield': ['gte', 'lte'],
+    'projected_appreciation': ['gte', 'lte'],
+    'tokens_total': ['gte', 'lte'],
+    'tokens_sold': ['gte', 'lte'],
+    'tokens_available': ['gte', 'lte'],
+    // 'property_price': ['gte', 'lte'],
+    'property_price': [portfolioBudget.value],
+  }
+  // transfer country filters as ['Turkey', 'Africa', ...] not working 
+  if (isTableView.value) await store.dispatch('getObjs', filters)
+  else await store.dispatch('getObjs')
+  loadLikes()
+}
+
+const numOfPropsChanged = () => {
+  // update data after toggle view mode
+  updateTableItems()
+  syncQuery()
+}
+
+const propTypeChanged = () => {
+  // update data after toggle view mode
+  updateTableItems()
+  syncQuery()
+}
+
+const loadLikes = () => {
+  if (isLocalCacheLikes) {
+    const request = indexedDB.open('token_prop', 1)
+    request.onupgradeneeded = function (event) {
+      db.value = event.target.result
+      // Create an object store if it doesn't exist
+      if (!db.value.objectStoreNames.contains('obj2like')) {
+        db.value.createObjectStore(
+          'obj2like',
+          {
+            keyPath: 'id'
+          }
+        )
       }
     }
-  } catch (e) {
-    isShowSnackbar.value = true
-    snackbarContent.value = 'Произошла ошибка'
-  }
-})
+    request.onsuccess = function (event) {
+      db.value = event.target.result
+      
+      // Write data
+      const transaction = db.value.transaction('obj2like', 'readwrite')
+      const iDbStore = transaction.objectStore('obj2like')
+      for (let obj of store.state.objs ?? []) {
+        const data = {
+          id: obj.id,
+          like: false
+        }
+        // create entry if db not contain
+        const getRequest = iDbStore.get(obj.id)
+        getRequest.onsuccess = function () { 
+          const existingData = getRequest.result
+          if (!existingData) {
+            iDbStore.add(data)
+            obj.isFavorite = false
+          } else {
+            obj.isFavorite = existingData?.like ?? false
+          }
+        }
+        getRequest.onerror = () => {
+          isShowSnackbar.value = true
+          snackbarContent.value = 'Произошла ошибка'
+          console.error('Error retrieving entry')
+        }
+      }
 
-const MAX_DESC_LENGTH = 150
+      transaction.oncomplete = () => console.log('Data written successfully')
+      transaction.onerror = () => {
+        isShowSnackbar.value = true
+        snackbarContent.value = 'Произошла ошибка'
+        console.error('Error writing data')
+      }
+    }
+  }
+}
 
 const toggleLike = (obj) => {
   obj.isFavorite = !(obj.isFavorite ?? false)
@@ -153,70 +168,6 @@ const toggleLike = (obj) => {
     }
   }
 }
-
-const isTableView = ref(false)
-const isLocalCacheLikes = true
-
-const toggleViewMode = () => {
-  isTableView.value = !isTableView.value
-  // update data after toggle view mode
-  // reset filters for return to grid view mode because or else invalid behaviour or transfer filters only for isTableView
-  updateTableItems()
-}
-
-const resetFilters = () => {
-  /*
-   * force not use sort and filter menus
-   * isShowSortMenu.value = false
-   * sortMenuItem.value = null
-   * isShowFilterMenu.value = false
-   * filterMenuItem.value = null
-   */
-  dealType.value = 'Balanced (higher projected total yield)'
-  numOfPropsForPortfolio.value = 10
-  portfolioBudget.value = undefined
-  propTypeInPortfolio.value = 'Mixed'
-  geoDiversification.value = 'ALL'
-  countries.value = []
-  // update data after reset filters
-  updateTableItems()
-  syncQuery()
-}
-
-const updateTableItems = () => {
-  const filters = {
-    'name': ['icontains'],
-    'provider__name': ['icontains'],
-    'deal_type': ['exact'],
-    // 'deal_type': dealType.value,
-    // 'property_type': ['exact'],
-    'address': ['icontains'],
-    'province': ['exact'],
-    'country': countries.value.length && geoDiversification.value === 'COUNTRY' ? countries.value[0] : [],
-    'projected_rental_yield': ['gte', 'lte'],
-    'projected_appreciation': ['gte', 'lte'],
-    'tokens_total': ['gte', 'lte'],
-    'tokens_sold': ['gte', 'lte'],
-    'tokens_available': ['gte', 'lte'],
-    // 'property_price': ['gte', 'lte'],
-    'property_price': [portfolioBudget.value],
-  }
-  // transfer country filters as ['Turkey', 'Africa', ...] not working 
-  if (isTableView.value) store.dispatch('getObjs', filters)
-  else store.dispatch('getObjs')
-}
-
-const dealType = ref('Balanced (higher projected total yield)')
-
-const numOfPropsForPortfolio = ref(10)
-
-const portfolioBudget = ref()
-
-const propTypeInPortfolio = ref('Mixed')
-
-const geoDiversification = ref('ALL')
-
-const countries = ref([])
 
 const onCountryToggled = () => {
   // update data after toggle view mode
@@ -269,7 +220,6 @@ const DEAL_TYPES = [
     value: 'RISKIER',
   },
 ]
-
 const PROP_TYPES = [
   {
     display: 'Commercial Only',
@@ -284,22 +234,34 @@ const PROP_TYPES = [
     value: 'MIXED',
   },
 ]
+const MAX_DESC_LENGTH = 150
+const isLocalCacheLikes = true
 
-const numOfPropsChanged = () => {
-  // update data after toggle view mode
-  updateTableItems()
-  syncQuery()
-}
-
-const propTypeChanged = () => {
-  // update data after toggle view mode
-  updateTableItems()
-  syncQuery()
-}
+onMounted(async () => {
+  const budget = route.query.budget
+  if (budget) portfolioBudget.value = budget
+  const propType = route.query.prop_type
+  if (propType) propTypeInPortfolio.value = propType
+  const numOfProps = route.query.num_of_props
+  if (numOfProps) numOfPropsForPortfolio.value = numOfProps
+  const geo = route.query.geo
+  if (geo) {
+    geoDiversification.value = 'COUNTRY'
+    countries.value = geo.split(',')
+  }
+  const deal = route.query.deal_type
+  if (deal) dealType.value = deal
+  try {
+    await store.dispatch('getObjs')
+    loadLikes()
+  } catch (e) {
+    isShowSnackbar.value = true
+    snackbarContent.value = 'Произошла ошибка'
+  }
+})
 </script>
 <template>
   <div v-if="store.state.fetched" :class="{ 'pa-8': (store.state.objs?.length ?? false) || isTableView }">
-    <!-- <div v-if="store.state.objs?.length ?? false"> -->
     <div v-if="(store.state.objs?.length ?? false) || isTableView">
       <p class="text-h5 mb-4">Могут подойти</p>
       <v-row no-gutters>
@@ -320,58 +282,6 @@ const propTypeChanged = () => {
       <p class="text-h5">Объекты не найдены</p>
     </div>
     <!-- force not use menus -->
-    <!-- <v-expand-transition>
-      <div v-if="isTableView" class="d-flex flex-column mb-4" style="gap: 16px">
-        <v-row justify="end">
-          <v-col cols="auto">
-            <v-menu
-              :location="'start'"
-              v-model="isShowSortMenu"
-              :close-on-content-click="false"
-              offset-y
-              :offset="[10, 0]">
-              <template #activator="{ props }">
-                <v-btn v-bind="props" color="primary" dark icon>
-                  <v-icon>mdi-sort</v-icon>
-                </v-btn>
-              </template>
-              <v-list class="pa-0">
-                <v-list-item
-                  v-for="(option, index) in sortOptions"
-                  :key="index"
-                  :variant="sortMenuItem === option.value ? 'tonal' : null"
-                  @click="selectSort(option)">
-                  <v-list-item-title>{{ option.label }}</v-list-item-title>
-                </v-list-item>
-              </v-list>
-            </v-menu>
-          </v-col>
-          <v-col cols="auto">
-            <v-menu
-              :location="'start'"
-              v-model="isShowFilterMenu"
-              :close-on-content-click="false"
-              offset-y
-              :offset="[10, 0]">
-              <template #activator="{ props }">
-                <v-btn v-bind="props" color="secondary" dark icon>
-                  <v-icon>mdi-filter</v-icon>
-                </v-btn>
-              </template>
-              <v-list class="pa-0">
-                <v-list-item
-                  v-for="(option, index) in filterOptions"
-                  :key="index"
-                  :variant="filterMenuItem === option.value ? 'tonal' : null"
-                  @click="selectFilter(option)">
-                  <v-list-item-title>{{ option.label }}</v-list-item-title>
-                </v-list-item>
-              </v-list>
-            </v-menu>
-          </v-col>
-        </v-row>
-      </div>
-    </v-expand-transition> -->
     <v-row :align="'stretch'">
       <!-- cols="4" for filters in aside -->
       <v-col v-if="isTableView" cols="12">
@@ -387,7 +297,7 @@ const propTypeChanged = () => {
           :show-ticks="'always'"
           v-model="numOfPropsForPortfolio"
           class="mb-4"
-          @update:modelValue="(val) => numOfPropsChanged = val">
+          @end="numOfPropsChanged">
           <template #tick-label="{ index }">
             <p v-if="index === 0">1</p>
             <p v-else-if="index === 19">20</p>
@@ -400,7 +310,7 @@ const propTypeChanged = () => {
           :item-title="'display'"
           :item-value="'value'"
           class="mb-4"
-          @update:modelValue="propTypeChanged" />
+          @end="propTypeChanged" />
         <p class="text-subtitle-2 mb-4">GEO diversification</p>
         <v-form>
           <v-radio-group v-model="geoDiversification">
@@ -464,8 +374,8 @@ const propTypeChanged = () => {
           class="mb-4"
           :item-title="'display'"
           :item-value="'value'"
-          @update:modelValue="dealTypeChanged" />
-        <div class="d-flex flex-column" style="gap: 10px;">
+          @end="dealTypeChanged" />
+        <div class="d-flex flex-column table-view-actions">
           <v-btn color="red" class="text-none" @click="resetFilters">
             Reset Filters
           </v-btn>
@@ -611,6 +521,10 @@ const propTypeChanged = () => {
 .like-btn {
   right: 15px;
   top: 15px;
+}
+
+.table-view-actions {
+  gap: 10px;
 }
 </style>
 <style>
